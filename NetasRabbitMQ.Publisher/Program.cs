@@ -4,9 +4,9 @@ using System.Text;
 
 namespace NetasRabbitMQ.Publisher
 {
-    class Program
+    internal class Program
     {
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
             var factory = new ConnectionFactory();
             factory.HostName = "localhost";
@@ -15,21 +15,33 @@ namespace NetasRabbitMQ.Publisher
             {
                 using (var channel = connection.CreateModel())
                 {
-                    channel.QueueDeclare("hello", false, false, false, null);
+                    channel.QueueDeclare("task_queue", durable:true, false, false, null);
 
-                    string message = "Hello Netas";
+                    string message = GetMessage(args);
 
-                    var bodyByte = Encoding.UTF8.GetBytes(message);
+                    for (int i = 1; i < 11; i++)
+                    {
+                        var bodyByte = Encoding.UTF8.GetBytes($"{message}-{i}");
+                        var properties = channel.CreateBasicProperties();
 
-                    channel.BasicPublish("", routingKey: "hello", null, body:bodyByte);
+                        properties.Persistent = true;
 
-                    Console.WriteLine("Mesajınız gönderilmiştir.");
+                        channel.BasicPublish("", routingKey: "task_queue", properties, body: bodyByte);
+
+                        Console.WriteLine($"Mesajınız gönderilmiştir:{message}-{i}");
+
+                    }
 
                 }
 
                 Console.WriteLine("Çıkış yapmak için tıklayınız.");
                 Console.ReadLine();
             }
+        }
+
+        private static string GetMessage(string[] args)
+        {
+            return args[0].ToString();
         }
     }
 }
