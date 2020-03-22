@@ -17,26 +17,29 @@ namespace NetasRabbitMQ.Consumer
             {
                 using (var channel = connection.CreateModel())
                 {
-                    channel.QueueDeclare("task_queue", durable:true, exclusive:false, autoDelete:false, null);
+                    channel.ExchangeDeclare("logs", durable: true, type: ExchangeType.Fanout);
+
+                    var queueName = channel.QueueDeclare().QueueName; /* Random Queue ismi üretiyor. */
+
+                    channel.QueueBind(queue: queueName, exchange: "logs", routingKey: "");
 
                     channel.BasicQos(prefetchSize:0, prefetchCount:1, false);
 
-                    Console.WriteLine("Mesajlar bekleniyor...");
+                    Console.WriteLine("Loglar bekleniyor...");
 
                     var consumer = new EventingBasicConsumer(channel);
 
-
-                    channel.BasicConsume("task_queue", autoAck:false , consumer);
+                    channel.BasicConsume(queue:queueName, autoAck:false , consumer);
 
                     consumer.Received += (model, ea) =>
                       {
                           var bodyByte = ea.Body;
-                          var message = Encoding.UTF8.GetString(bodyByte);
-                          Console.WriteLine("Mesaj alındı: " + message);
+                          var log = Encoding.UTF8.GetString(bodyByte);
+                          Console.WriteLine("Log alındı: " + log);
 
                           int time = int.Parse(GetMessage(args));
                           Thread.Sleep(time);
-                          Console.WriteLine("Mesaj işlendi...");
+                          Console.WriteLine("Loglama işlemi tamamlandı.");
 
                           channel.BasicAck(ea.DeliveryTag, multiple: false);
                       };
