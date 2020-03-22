@@ -1,11 +1,18 @@
 ﻿using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
+using System.IO;
 using System.Text;
 using System.Threading;
 
 namespace NetasRabbitMQ.Consumer
 {
+    public enum LogNames
+    {
+        Critical,
+        Error
+    };
+
     internal class Program
     {
         private static void Main(string[] args)
@@ -17,16 +24,19 @@ namespace NetasRabbitMQ.Consumer
             {
                 using (var channel = connection.CreateModel())
                 {
-                    channel.ExchangeDeclare("logs", durable: true, type: ExchangeType.Fanout);
+                    channel.ExchangeDeclare("direct-exchange", durable: true, type: ExchangeType.Direct);
 
                     var queueName = channel.QueueDeclare().QueueName; /* Random Queue ismi üretiyor. */
-
-                    channel.QueueBind(queue: queueName, exchange: "logs", routingKey: "");
-
+                    
+                    for (int i=0; i < args.Length; i++)
+                    {
+                        var item = args[i].ToString();
+                        channel.QueueBind(queue: queueName, exchange: "direct-exchange", routingKey: item);
+                        Console.WriteLine($"{args[i].ToString()} Loglar bekleniyor...");
+                    }         
+                    
                     channel.BasicQos(prefetchSize:0, prefetchCount:1, false);
-
-                    Console.WriteLine("Loglar bekleniyor...");
-
+                    
                     var consumer = new EventingBasicConsumer(channel);
 
                     channel.BasicConsume(queue:queueName, autoAck:false , consumer);
@@ -37,8 +47,11 @@ namespace NetasRabbitMQ.Consumer
                           var log = Encoding.UTF8.GetString(bodyByte);
                           Console.WriteLine("Log alındı: " + log);
 
-                          int time = int.Parse(GetMessage(args));
+                          int time = 100;
                           Thread.Sleep(time);
+
+                          File.AppendAllText("logs_critical_error.txt", log + "\n");
+
                           Console.WriteLine("Loglama işlemi tamamlandı.");
 
                           channel.BasicAck(ea.DeliveryTag, multiple: false);
