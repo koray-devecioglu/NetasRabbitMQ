@@ -24,14 +24,14 @@ namespace NetasRabbitMQ.Consumer
             {
                 using (var channel = connection.CreateModel())
                 {
-                    channel.ExchangeDeclare("direct-exchange", durable: true, type: ExchangeType.Direct);
+                    channel.ExchangeDeclare("topic-exchange", durable: true, type: ExchangeType.Topic);
 
                     var queueName = channel.QueueDeclare().QueueName; /* Random Queue ismi üretiyor. */
                     
                     for (int i=0; i < args.Length; i++)
                     {
                         var item = args[i].ToString();
-                        channel.QueueBind(queue: queueName, exchange: "direct-exchange", routingKey: item);
+                        channel.QueueBind(queue: queueName, exchange: "topic-exchange", routingKey: item);
                         Console.WriteLine($"{args[i].ToString()} Loglar bekleniyor...");
                     }         
                     
@@ -49,8 +49,6 @@ namespace NetasRabbitMQ.Consumer
 
                           int time = 100;
                           Thread.Sleep(time);
-
-                          File.AppendAllText("logs_critical_error.txt", log + "\n");
 
                           Console.WriteLine("Loglama işlemi tamamlandı.");
 
