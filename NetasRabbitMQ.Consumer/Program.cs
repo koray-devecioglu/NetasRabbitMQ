@@ -1,4 +1,5 @@
-﻿using RabbitMQ.Client;
+﻿using Newtonsoft.Json;
+using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
 using System.Collections.Generic;
@@ -39,12 +40,16 @@ namespace NetasRabbitMQ.Consumer
                     var consumer = new EventingBasicConsumer(channel);
 
                     channel.BasicConsume("header_queue1", false, consumer);
+                    int i = 1;
 
                     consumer.Received += (model, ea) =>
                       {
-                          var message = Encoding.UTF8.GetString(ea.Body);
-                          Console.WriteLine($"Gelen mesaj:{message}");
+                          string message = Encoding.UTF8.GetString(ea.Body);
 
+                          User user = JsonConvert.DeserializeObject<User>(message);
+
+                          Console.WriteLine($"{i.ToString()}. Mesaj= \n ----------- \n Id:{user.Id.ToString()} \n Name:{user.Name} \n Email:{user.Email} \n Password:{user.Password} \n");
+                          i++;
                           channel.BasicAck(ea.DeliveryTag, multiple: false);
                       };
                     Console.WriteLine("Çıkış yapmak için tıklayınız.");

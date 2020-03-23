@@ -1,4 +1,5 @@
-﻿using RabbitMQ.Client;
+﻿using Newtonsoft.Json;
+using RabbitMQ.Client;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -40,7 +41,17 @@ namespace NetasRabbitMQ.Publisher
 
                     properties.Headers = headers;
 
-                    channel.BasicPublish("header-exchange", routingKey:"", properties, Encoding.UTF8.GetBytes("Header Exchange Tipi ile gönderilen mesaj "));
+                    int Id = int.Parse(args[0].ToString());
+                    string Name  = args[1].ToString();
+                    string Email = args[2].ToString();
+                    string Password = args[3].ToString();
+
+                    User user = new User() { Id = Id, Name = Name , Email = Email, Password = Password };
+
+                    String userSerialize = JsonConvert.SerializeObject(user);
+
+                    Console.WriteLine("Mesaj Gönderildi. ");
+                    channel.BasicPublish("header-exchange", routingKey:"", properties, Encoding.UTF8.GetBytes(userSerialize));
 
                 }
 
