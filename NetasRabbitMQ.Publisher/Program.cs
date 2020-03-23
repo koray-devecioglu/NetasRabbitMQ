@@ -1,5 +1,6 @@
 ﻿using RabbitMQ.Client;
 using System;
+using System.Collections.Generic;
 using System.Text;
 
 namespace NetasRabbitMQ.Publisher
@@ -28,31 +29,18 @@ namespace NetasRabbitMQ.Publisher
             {
                 using (var channel = connection.CreateModel())
                 {
-                    channel.ExchangeDeclare("topic-exchange", durable: true, type: ExchangeType.Topic);
+                    channel.ExchangeDeclare("header-exchange", durable: true, type: ExchangeType.Headers);
 
-                    Array log_name_array = Enum.GetValues(typeof(LogNames));
+                    var properties = channel.CreateBasicProperties();
 
-                    int counter = int.Parse(args[0].ToString());
+                    Dictionary<string, object> headers = new Dictionary<string, object>();
 
-                    for (int i = 0; i < counter; i++)
-                    {
-                        Random rnd = new Random();
+                    headers.Add("format", "pdf");
+                    headers.Add("shape", "a4");
 
-                        LogNames log1 = (LogNames)log_name_array.GetValue(rnd.Next(log_name_array.Length)); /* 1-4 arası Random Değer */
-                        LogNames log2 = (LogNames)log_name_array.GetValue(rnd.Next(log_name_array.Length)); /* 1-4 arası Random Değer */
-                        LogNames log3 = (LogNames)log_name_array.GetValue(rnd.Next(log_name_array.Length)); /* 1-4 arası Random Değer */
+                    properties.Headers = headers;
 
-                        string RoutingKey = $"{log1}.{log2}.{log3}";
-
-                        var bodyByte = Encoding.UTF8.GetBytes($"log={log1.ToString()}-{log2.ToString()}-{log3.ToString()}");
-                        var properties = channel.CreateBasicProperties();
-
-                        properties.Persistent = true;
-
-                        channel.BasicPublish("topic-exchange", routingKey:RoutingKey, properties, body: bodyByte);
-
-                        Console.WriteLine($"Log mesajı gönderilmiştir: {RoutingKey}");
-                    }
+                    channel.BasicPublish("header-exchange", routingKey:"", properties, Encoding.UTF8.GetBytes("Header Exchange Tipi ile gönderilen mesaj "));
 
                 }
 

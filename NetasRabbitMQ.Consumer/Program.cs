@@ -1,6 +1,7 @@
 ﻿using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -24,33 +25,25 @@ namespace NetasRabbitMQ.Consumer
             {
                 using (var channel = connection.CreateModel())
                 {
-                    channel.ExchangeDeclare("topic-exchange", durable: true, type: ExchangeType.Topic);
+                    channel.ExchangeDeclare("header-exchange", durable: true, type: ExchangeType.Headers);
+                    channel.QueueDeclare("header_queue1", false, false, false, null);
 
-                    var queueName = channel.QueueDeclare().QueueName; /* Random Queue ismi üretiyor. */
-                    
-                    for (int i=0; i < args.Length; i++)
-                    {
-                        var item = args[i].ToString();
-                        channel.QueueBind(queue: queueName, exchange: "topic-exchange", routingKey: item);
-                        Console.WriteLine($"{args[i].ToString()} Loglar bekleniyor...");
-                    }         
-                    
-                    channel.BasicQos(prefetchSize:0, prefetchCount:1, false);
+                    Dictionary<string, object> headers = new Dictionary<string, object>();
+
+                    headers.Add("format", "pdf");
+                    headers.Add("shape", "a4");
+                    headers.Add("x-match", "all");
+
+                    channel.QueueBind("header_queue1", "header-exchange", routingKey: "", headers);
                     
                     var consumer = new EventingBasicConsumer(channel);
 
-                    channel.BasicConsume(queue:queueName, autoAck:false , consumer);
+                    channel.BasicConsume("header_queue1", false, consumer);
 
                     consumer.Received += (model, ea) =>
                       {
-                          var bodyByte = ea.Body;
-                          var log = Encoding.UTF8.GetString(bodyByte);
-                          Console.WriteLine("Log alındı: " + log);
-
-                          int time = 100;
-                          Thread.Sleep(time);
-
-                          Console.WriteLine("Loglama işlemi tamamlandı.");
+                          var message = Encoding.UTF8.GetString(ea.Body);
+                          Console.WriteLine($"Gelen mesaj:{message}");
 
                           channel.BasicAck(ea.DeliveryTag, multiple: false);
                       };
